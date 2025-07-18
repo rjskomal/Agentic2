@@ -6,3 +6,4 @@ Make sure you name it like this else the code does not work. **  GEMINI_API_URL 
 
 Create your API key here https://aistudio.google.com/app/apikey 
 
+https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=YOURAPIKEY
