@@ -1,35 +1,81 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React, { useState } from 'react';
+import './App.css';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [city, setCity] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [recommendations, setRecommendations] = useState('');
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!city.trim()) return;
+
+    setLoading(true);
+    setError('');
+    setRecommendations('');
+
+    try {
+      const response = await fetch('http://localhost:5000/prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ city }),
+      });
+
+      const data = await response.json();
+      console.log('API Response:', data); // for debugging
+
+      if (response.ok && data.recommendations) {
+        setRecommendations(data.recommendations);
+      } else {
+        setError(data.error || 'Something went wrong');
+      }
+    } catch (err) {
+      setError('Server error. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
+    <div className="app-container">
+      <h1>Tourist Guide</h1>
+      <form onSubmit={handleSubmit}>
+        <input
+          type="text"
+          placeholder="Enter city name"
+          value={city}
+          onChange={(e) => setCity(e.target.value)}
+        />
+        <button type="submit" disabled={loading}>
+          {loading ? 'Fetching...' : 'Get Recommendations'}
         </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+      </form>
+
+      {error && <p className="error">{error}</p>}
+
+      {recommendations && (
+        <div className="results">
+          <h2>Top 8 Places in {city}</h2>
+          <ol>
+            {recommendations
+              .split('\n')
+              .filter(line => line.trim() !== '')
+              .map((line, index) => {
+                const [place, ...desc] = line.split(':');
+                return (
+                  <li key={index}>
+                    <strong>{place.replace(/^\*\*\s*|\*\*$/g, '').trim()}:</strong>{' '}
+                    {desc.join(':').trim()}
+                  </li>
+                );
+              })}
+          </ol>
+        </div>
+      )}
+    </div>
+  );
 }
 
-export default App
+export default App;
+

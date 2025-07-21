@@ -4,7 +4,10 @@ const axios = require('axios');
 dotenv.config();
 
 const app = express();
-app.use(express.json());
+const cors = require('cors');
+app.use(cors());
+
+
 
 const PORT = process.env.PORT;
 const GEMINI_API_URL = process.env.GEMINI_API_URL;
