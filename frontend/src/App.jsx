@@ -1,37 +1,31 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 import './App.css';
 
 function App() {
-  const [city, setCity] = useState('');
+  const [selectedCity, setSelectedCity] = useState('');
+  const [cityData, setCityData] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [recommendations, setRecommendations] = useState('');
   const [error, setError] = useState('');
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!city.trim()) return;
+  const handleExplore = async () => {
+    if (!selectedCity) {
+      setError('Please select a city.');
+      return;
+    }
 
     setLoading(true);
     setError('');
-    setRecommendations('');
+    setCityData(null);
 
     try {
-      const response = await fetch('http://localhost:3000/prompt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ city }),
+      const response = await axios.post('http://localhost:5000/city-explore', {
+        city: selectedCity
       });
 
-      const data = await response.json();
-      console.log('API Response:', data); // for debugging
-
-      if (response.ok && data.recommendations) {
-        setRecommendations(data.recommendations);
-      } else {
-        setError(data.error || 'Something went wrong');
-      }
+      setCityData(response.data);
     } catch (err) {
-      setError('Server error. Please try again later.');
+      setError('Failed to fetch data. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -39,43 +33,76 @@ function App() {
 
   return (
     <div className="app-container">
-      <h1>Tourist Guide</h1>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          placeholder="Enter city name"
-          value={city}
-          onChange={(e) => setCity(e.target.value)}
-        />
-        <button type="submit" disabled={loading}>
-          {loading ? 'Fetching...' : 'Get Recommendations'}
-        </button>
-      </form>
+      <div className="content-box">
+        <h1>City Explorer</h1>
 
-      {error && <p className="error">{error}</p>}
+        <div className="controls">
+          <select
+            value={selectedCity}
+            onChange={(e) => setSelectedCity(e.target.value)}
+          >
+            <option value="">Select a city to explore</option>
+            <option value="Bangalore">Bangalore</option>
+          </select>
 
-      {recommendations && (
-        <div className="results">
-          <h2>Top 8 Places in {city}</h2>
-          <ol>
-            {recommendations
-              .split('\n')
-              .filter(line => line.trim() !== '')
-              .map((line, index) => {
-                const [place, ...desc] = line.split(':');
-                return (
-                  <li key={index}>
-                    <strong>{place.replace(/^\*\*\s*|\*\*$/g, '').trim()}:</strong>{' '}
-                    {desc.join(':').trim()}
-                  </li>
-                );
-              })}
-          </ol>
+          <button onClick={handleExplore}>Enter</button>
         </div>
-      )}
+
+        {loading && <p className="center-text">Loading...</p>}
+        {error && <p className="error-text">{error}</p>}
+
+        {cityData && (
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tourist Place</th>
+                  <th>Temperature & Weather</th>
+                  <th>Transportation</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cityData.places.map((place, index) => {
+                  const tempData = cityData.temperature.find(
+                    (t) => t.city.toLowerCase() === place.toLowerCase()
+                  );
+                  const transport = cityData.transport.find(
+                    (t) => t.place.toLowerCase() === place.toLowerCase()
+                  );
+
+                  return (
+                    <tr key={index}>
+                      <td>{place}</td>
+                      <td>
+                        {tempData
+                          ? `${tempData.temperature}, ${tempData["Weather Condition"]}`
+                          : 'N/A'}
+                      </td>
+                      <td>
+                        {transport ? (
+                          <>
+                            <div><strong>From Majestic:</strong> {transport.fromMajestic}</div>
+                            <div><strong>From Airport:</strong> {transport.fromAirport}</div>
+                          </>
+                        ) : 'N/A'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
 export default App;
+
+
+
+
+
+
 
