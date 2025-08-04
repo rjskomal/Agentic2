@@ -1,85 +1,61 @@
+
 .app-container {
   display: flex;
-  justify-content: center;
-  align-items: center;
   flex-direction: column;
-  min-height: 100vh; /* Optional: vertically centers if page is short */
-  background-color: #f9f9f9;
+  align-items: center;
+  padding: 2rem;
+  background-color: #f5f5f5;
+  min-height: 100vh;
 }
 
+h1 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
 
-.content-box {
+select, button {
+  margin: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+}
+
+table {
+  margin-top: 2rem;
   width: 100%;
-  max-width: 1000px;
-  margin: 0 auto; /* <-- 💡 This centers it horizontally */
-  padding: 2rem;
-  background: #fff;
-  border-radius: 8px;
+  max-width: 900px;
+  border-collapse: collapse;
+  background-color: #fff;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+th, td {
+  padding: 1rem;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+th {
+  background-color: #f0f0f0;
+}
+
+td strong {
+  color: #333;
+}
+.table-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 2rem;
+}
+table {
+  width: 100%;
+  max-width: 900px;
+  border-collapse: collapse;
+  background-color: #fff;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
 
-.controls {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-select,
-button {
-  padding: 0.6rem 1rem;
-  font-size: 1rem;
-}
-
-button {
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-button:hover {
-  background-color: #0056b3;
-}
-
-.center-text {
-  text-align: center;
-  font-size: 1.2rem;
-}
-
-.error-text {
-  color: red;
-  font-weight: bold;
-  text-align: center;
-}
-
-.table-container {
-  overflow-x: auto;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 1rem;
-}
-
-th,
-td {
-  border: 1px solid #ccc;
-  padding: 12px;
-  text-align: left;
-  vertical-align: top;
-}
-
-th {
-  background-color: #f2f2f2;
-}
-
-td strong {
-  display: block;
-  margin-top: 5px;
-}
 
 
 
