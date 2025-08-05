@@ -27,9 +27,12 @@ function App() {
       const weatherData = tempRes.data.results;
 
       // 3. Get transport info
-      const transportRes = await axios.post('http://localhost:5000/transport');
-      const transportData = transportRes.data.transport;
-
+      // const transportRes = await axios.post('http://localhost:5000/transport');
+      
+const transportRes = await axios.post('http://localhost:5000/transport', {
+  places
+});
+const transportData = transportRes.data.transport;
       // 4. Merge data
       const combinedData = places.map((placeName) => {
         const weather = weatherData.find(w => w.city?.toLowerCase() === placeName.toLowerCase());
@@ -98,14 +101,4 @@ function App() {
 }
 
 export default App;
-
-
-
-
-
-
-
-
-
-
 

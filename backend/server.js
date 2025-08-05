@@ -125,14 +125,66 @@ app.post('/temp', async (req, res) => {
 });
  
 // -------- Third Agent: Get transportation info --------
+// app.post('/transport', async (req, res) => {
+//     if (lastRecommendations.length === 0) {
+//         return res.status(400).json({
+//             error: 'No tourist places found. Please call /prompt first to get recommendations.'
+//         });
+//     }
+ 
+//     const prompt = `For each of the following places in Bangalore: ${lastRecommendations.join(', ')}, provide the best transportation method to reach each place from both Majestic and Kempegowda International Airport. Return only a valid JavaScript array of objects in this format: 
+// [
+//   {
+//     place: 'Lalbagh',
+//     fromMajestic: 'Metro or BMTC bus - 30 minutes',
+//     fromAirport: 'Airport Shuttle + Metro - 90 minutes'
+//   },
+//   ...
+// ]
+// No explanation, no markdown, no code block. Just return the array.`;
+ 
+//     try {
+//         const response = await axios.post(GEMINI_API_URL, {
+//             contents: [
+//                 {
+//                     parts: [{ text: prompt }]
+//                 }
+//             ]
+//         });
+ 
+//         const raw = response.data.candidates[0].content.parts[0].text;
+ 
+//         let transportInfo;
+//         try {
+//             transportInfo = extractArray(raw);
+//         } catch (err) {
+//             return res.status(500).json({
+//                 error: 'Failed to parse transport info from Gemini.',
+//                 raw
+//             });
+//         }
+ 
+//         res.json({ transport: transportInfo });
+ 
+//     } catch (error) {
+//         console.error('Gemini API error:', error.response?.data || error.message);
+//         res.status(500).json({
+//             error: 'Failed to fetch transport info from Gemini API.',
+//             details: error.response?.data || error.message
+//         });
+//     }
+// });
+// -------- Third Agent: Get transportation info --------
 app.post('/transport', async (req, res) => {
-    if (lastRecommendations.length === 0) {
+    const { places } = req.body;
+
+    if (!places || !Array.isArray(places) || places.length === 0) {
         return res.status(400).json({
-            error: 'No tourist places found. Please call /prompt first to get recommendations.'
+            error: 'No tourist places provided in request body.'
         });
     }
- 
-    const prompt = `For each of the following places in Bangalore: ${lastRecommendations.join(', ')}, provide the best transportation method to reach each place from both Majestic and Kempegowda International Airport. Return only a valid JavaScript array of objects in this format: 
+
+    const prompt = `For each of the following places in Bangalore: ${places.join(', ')}, provide the best transportation method to reach each place from both Majestic and Kempegowda International Airport. Return only a valid JavaScript array of objects in this format: 
 [
   {
     place: 'Lalbagh',
@@ -142,7 +194,7 @@ app.post('/transport', async (req, res) => {
   ...
 ]
 No explanation, no markdown, no code block. Just return the array.`;
- 
+
     try {
         const response = await axios.post(GEMINI_API_URL, {
             contents: [
@@ -151,9 +203,9 @@ No explanation, no markdown, no code block. Just return the array.`;
                 }
             ]
         });
- 
+
         const raw = response.data.candidates[0].content.parts[0].text;
- 
+
         let transportInfo;
         try {
             transportInfo = extractArray(raw);
@@ -163,9 +215,9 @@ No explanation, no markdown, no code block. Just return the array.`;
                 raw
             });
         }
- 
+
         res.json({ transport: transportInfo });
- 
+
     } catch (error) {
         console.error('Gemini API error:', error.response?.data || error.message);
         res.status(500).json({
@@ -174,6 +226,7 @@ No explanation, no markdown, no code block. Just return the array.`;
         });
     }
 });
+
 
 // -------- Start server --------
 app.listen(PORT, () => {
