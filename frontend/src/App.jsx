@@ -15,13 +15,13 @@ function App() {
 
     try {
       // 1. Get tourist places
-      const promptRes = await axios.post('http://localhost:5000/prompt', {
+      const promptRes = await axios.post('http://localhost:3000/prompt', {
         city: selectedCity
       });
       const places = promptRes.data.recommendations;
 
       // 2. Get temperature and weather
-      const tempRes = await axios.post('http://localhost:5000/temp', {
+      const tempRes = await axios.post('http://localhost:3000/temp', {
         cities: places
       });
       const weatherData = tempRes.data.results;
@@ -29,7 +29,7 @@ function App() {
       // 3. Get transport info
       // const transportRes = await axios.post('http://localhost:5000/transport');
       
-const transportRes = await axios.post('http://localhost:5000/transport', {
+const transportRes = await axios.post('http://localhost:3000/transport', {
   places
 });
 const transportData = transportRes.data.transport;
