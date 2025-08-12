@@ -19,3 +19,17 @@ For better understanding, send a city name as an input (body) to /prompt like yo
 Then hit /temp with an empty body {}. You will get the temperatures.
 
 if you want a specific city's temperature you can pass {"cities" : [Your_CITY_name]} as the body for /temp
+
+
+*** /transport is not working for some reason***
+DO NOT USE THAT.
+hit /prompt with a body like this 
+
+{
+    "city": "Bangalore",
+    "start_date": "15/08/25",
+    "end_date": "18/08/25"
+}
+
+then hit /temp with the same body 
+and then /finalTrip.
