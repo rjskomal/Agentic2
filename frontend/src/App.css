@@ -102,3 +102,10 @@ input {
     padding: 20px;
   }
 }
+.get-trip-btn-container,
+.download-btn-container {
+  display: flex;
+  justify-content: center; /* centers horizontally */
+  margin-top: 20px;
+}
+

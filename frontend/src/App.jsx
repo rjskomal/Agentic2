@@ -1,12 +1,12 @@
-
-
 import React, { useState } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import axios from "axios";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import "./App.css";
 
-export default function TripPlanner() {
+export default function App() {
   const [city, setCity] = useState("");
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
@@ -67,6 +67,20 @@ export default function TripPlanner() {
     }
   };
 
+  // 📌 Download PDF function
+  const downloadPDF = () => {
+    const input = document.querySelector(".trip-output"); // capture only trip output section
+    html2canvas(input, { scale: 2 }).then((canvas) => {
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`TripPlan_${tripData.city}.pdf`);
+    });
+  };
+
   return (
     <div className="app-container">
       <h1>Trip Planner</h1>
@@ -99,9 +113,12 @@ export default function TripPlanner() {
         />
       </div>
 
-      <button className="btn" onClick={fetchTripPlan}>
-        {loading ? "Loading..." : "Get Trip Plan"}
-      </button>
+      <div className="get-trip-btn-container">
+        <button className="btn" onClick={fetchTripPlan}>
+          {loading ? "Loading..." : "Get Trip Plan"}
+        </button>
+      </div>
+
 
       {tripData && (
         <div className="trip-output">
@@ -114,21 +131,27 @@ export default function TripPlanner() {
           </p>
           <div className="trip-plan-box">
             {tripData.trip_plan.split("\n").map((line, idx) => {
-  const trimmed = line.trim();
+              const trimmed = line.trim();
 
-  // Replace markdown-style bold (**text**) with actual <strong> elements
-  const partsWithBold = trimmed.split(/(\*\*.*?\*\*)/g).map((part, i) => {
-    if (/^\*\*.*\*\*$/.test(part)) {
-      return <strong key={i}>{part.replace(/\*\*/g, "")}</strong>;
-    }
-    return part;
-  });
+              // Replace markdown-style bold (**text**) with actual <strong>
+              const partsWithBold = trimmed.split(/(\*\*.*?\*\*)/g).map((part, i) => {
+                if (/^\*\*.*\*\*$/.test(part)) {
+                  return <strong key={i}>{part.replace(/\*\*/g, "")}</strong>;
+                }
+                return part;
+              });
 
-  return <p key={idx}>{partsWithBold}</p>;
-})}
-
-
+              return <p key={idx}>{partsWithBold}</p>;
+            })}
           </div>
+
+         
+        <div className="download-btn-container">
+          <button className="btn" onClick={downloadPDF}>
+            Download as PDF
+          </button>
+        </div>
+
         </div>
       )}
     </div>
