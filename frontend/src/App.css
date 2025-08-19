@@ -34,6 +34,7 @@ h2 {
 /* Form Styles */
 .form-group {
   margin-bottom: 20px;
+
 }
 
 label {
@@ -49,6 +50,8 @@ input {
   border: 1px solid #ccc;
   border-radius: 6px;
   font-size: 15px;
+  box-sizing: border-box; /* ensures padding is included in width */
+  display: block; /* avoids inline sizing issues */
 }
 
 /* Date Picker overrides */
@@ -109,3 +112,8 @@ input {
   margin-top: 20px;
 }
 
+.trip-heading {
+  color: red;
+  font-weight: bold;
+  font-size: 16px; /* optional: make it stand out */
+}
