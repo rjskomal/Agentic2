@@ -21,51 +21,63 @@ export default function App() {
     return `${day}/${month}/${year}`;
   };
 
-  const fetchTripPlan = async () => {
-    if (!startDate || !endDate) {
-      alert("Please select both start and end dates");
-      return;
-    }
 
-    const totalDays =
-      Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+ const fetchTripPlan = async () => {
+  if (!startDate || !endDate) {
+    alert("Please select both start and end dates");
+    return;
+  }
 
-    const payload = {
+  const totalDays =
+    Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+
+  const payload = {
+    city,
+    start_date: formatDate(startDate),
+    end_date: formatDate(endDate),
+    total_days: totalDays
+  };
+
+  console.log("📤 Sending to backend:", payload);
+
+  try {
+    setTripData(null);
+    setLoading(true);
+
+    // Step 1: Call /prompt
+    await axios.post("http://localhost:5000/prompt", {
       city,
       start_date: formatDate(startDate),
-      end_date: formatDate(endDate),
-      total_days: totalDays
+      end_date: formatDate(endDate)
+    });
+
+    // Step 2: Call /temp with EMPTY body (backend will use stored recommendations)
+    const tempResponse = await axios.post("http://localhost:5000/temp", {});
+
+    // Step 3: Call /finalTrip with payload + temp_data
+    const finalPayload = {
+      ...payload,
+      temperatureData: tempResponse.data.results
     };
 
-    console.log("📤 Sending to backend:", payload);
+    const response = await axios.post(
+      "http://localhost:5000/finalTrip",
+      finalPayload
+    );
 
-    try {
-      setTripData(null);
-      setLoading(true);
+    setTripData(response.data);
+  } catch (error) {
+    console.error("Backend error:", error.response?.data || error.message);
+    alert(
+      `Error: ${
+        error.response?.data?.error || "Failed to fetch trip plan"
+      }`
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
-      await axios.post("http://localhost:5000/prompt", {
-        city,
-        start_date: formatDate(startDate),
-        end_date: formatDate(endDate)
-      });
-
-      const response = await axios.post(
-        "http://localhost:5000/finalTrip",
-        payload
-      );
-
-      setTripData(response.data);
-    } catch (error) {
-      console.error("Backend error:", error.response?.data || error.message);
-      alert(
-        `Error: ${
-          error.response?.data?.error || "Failed to fetch trip plan"
-        }`
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // 📌 Download PDF function
   const downloadPDF = () => {
@@ -139,40 +151,50 @@ export default function App() {
       </div>
 
 
-      {tripData && (
-        <div className="trip-output">
-          <h2>
-            Trip Plan for {tripData.city} ({tripData.start_date} →{" "}
-            {tripData.end_date})
-          </h2>
-          <p>
-            <strong>Total Days:</strong> {tripData.total_days}
-          </p>
-          <div className="trip-plan-box">
-            {tripData.trip_plan.split("\n").map((line, idx) => {
-              const trimmed = line.trim();
+      {tripData ? (
+  <div className="trip-output">
+    <h2>
+      Trip Plan for {tripData.city} ({tripData.start_date} → {tripData.end_date})
+    </h2>
+    <p>
+      <strong>Total Days:</strong> {tripData.total_days}
+    </p>
 
-              // Replace markdown-style bold (**text**) with actual <strong>
-              const partsWithBold = trimmed.split(/(\*\*.*?\*\*)/g).map((part, i) => {
-                if (/^\*\*.*\*\*$/.test(part)) {
-                  return <strong key={i}>{part.replace(/\*\*/g, "")}</strong>;
-                }
-                return part;
-              });
+    <div className="trip-plan-box">
+      {tripData.trip_plan
+        ? tripData.trip_plan.split("\n").map((line, idx) => {
+            const cleaned = line.replace(/\*/g, "").trim();
 
-              return <p key={idx}>{partsWithBold}</p>;
-            })}
-          </div>
+            const headingMatch = cleaned.match(
+              /^(Day\s*\d+|Places|Transport|Weather|Tips|Activities|Costs)\s*[:\-]?/i
+            );
 
-         
-        <div className="download-btn-container">
-          <button className="btn" onClick={downloadPDF}>
-            Download as PDF
-          </button>
-        </div>
+            if (headingMatch) {
+              const heading = headingMatch[1];
+              const rest = cleaned.slice(headingMatch[0].length).trim();
 
-        </div>
-      )}
+              return (
+                <p key={idx}>
+                  <strong style={{ color: "teal" }}>{heading}:</strong> {rest}
+                </p>
+              );
+            }
+
+            return <p key={idx}>{cleaned}</p>;
+          })
+        : <p>No trip plan available yet.</p>}
+    </div>
+
+    <div className="download-btn-container">
+      <button className="btn" onClick={downloadPDF}>
+        Download as PDF
+      </button>
+    </div>
+  </div>
+) : (
+  <p>Please enter trip details to generate a plan.</p>
+)}
+
     </div>
   );
 }

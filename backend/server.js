@@ -17,23 +17,27 @@ let lastRecommendations = [];
 let tripDates = { start: '', end: '' };
 let tripCity = '';
 
-function extractArray(text) {
+function extractJSON(text) {
+    if (!text || typeof text !== "string") return {};
+
     try {
-        const cleaned = text
-            .replace(/```/g, '')
-            .replace(/javascript/i, '')
-            .replace(/\n/g, '')
-            .trim();
-
-        const parsed = Function('"use strict";return (' + cleaned + ')')();
-
-        if (!Array.isArray(parsed)) {
-            throw new Error('Parsed data is not an array.');
+        // Match triple backticks with ANY language (json, javascript, etc.)
+        const fenceMatch = text.match(/```(?:\w+)?([\s\S]*?)```/i);
+        if (fenceMatch) {
+            return JSON.parse(fenceMatch[1].trim());
         }
 
-        return parsed;
+        // Otherwise, match first {...}
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            return JSON.parse(jsonMatch[0]);
+        }
+
+        return JSON.parse(text.trim());
     } catch (err) {
-        throw new Error('Failed to parse array from Gemini response.');
+        console.error("❌ Failed to parse Gemini JSON:", err.message);
+        console.error("Raw text was:\n", text);
+        return {};
     }
 }
 
@@ -67,51 +71,106 @@ app.post('/prompt', async (req, res) => {
     tripDates.end = end_date;
     tripCity = city;
 
-    const prompt = `Give me strictly 8 famous tourist places to visit in ${city}. Return only a valid JavaScript array. No explanation, no markdown formatting.`;
+     //const prompt = `Give me strictly 8 famous tourist places to visit in ${city}. Return only a valid JavaScript array. No explanation, no markdown formatting.`;
+   const totalDays = calculateDaysDifference(start_date, end_date);
+
+const prompt = `
+Plan a trip for ${city} from ${start_date} to ${end_date}.
+Distribute tourist places across ${totalDays} days.
+Each day must include 3 to 4 famous tourist places.
+
+Return the response strictly as a valid JavaScript object in this format:
+
+{
+  "days": [
+    {
+      "day": 1,
+      "date": "YYYY-MM-DD",
+      "places": ["Place 1", "Place 2", "Place 3"]
+    },
+    {
+      "day": 2,
+      "date": "YYYY-MM-DD",
+      "places": ["Place 4", "Place 5", "Place 6"]
+    }
+  ]
+}
+No explanation, no markdown formatting.
+`;
+
 
     try {
         const response = await axios.post(GEMINI_API_URL, {
             contents: [{ parts: [{ text: prompt }] }],
         });
         const raw = response.data.candidates[0].content.parts[0].text;
-        let recommendations;
-        recommendations = extractArray(raw);
-        lastRecommendations = recommendations;
+let recommendations = extractJSON(raw);
 
-        res.json({
-            city,
-            recommendations,
-            start_date,
-            end_date,
-            total_days: calculateDaysDifference(start_date, end_date),
-        });
+// ✅ Extract only the places from day-wise plan
+lastRecommendations = recommendations.days.flatMap(day => day.places);
+
+// Debugging
+console.log("📌 Saved lastRecommendations (places only):", lastRecommendations);
+
+res.json({
+    city,
+    recommendations,
+    start_date,
+    end_date,
+    total_days: calculateDaysDifference(start_date, end_date),
+});
+
+
     } catch (err) {
         res.status(500).json({ error: 'Error fetching tourist places', details: err.message });
     }
 });
 
-// --------- `/temp` using stored data if not provided ---------
+
 app.post('/temp', async (req, res) => {
-    let { cities } = req.body;
+    let { cities, city } = req.body;
+
+    // If cities not provided, use stored recommendations
     if (!cities || !Array.isArray(cities) || cities.length === 0) {
-        if (lastRecommendations.length === 0 || !tripCity) {
-            return res.status(400).json({ error: 'No city info available' });
+        if (lastRecommendations.length === 0) {
+            if (!city) return res.status(400).json({ error: 'No city info available' });
+            return res.status(400).json({ error: 'Call /prompt first to get tourist places' });
         }
         cities = lastRecommendations;
     }
-    const prompt = `Give the current temperature and weather condition (ex: cloudy, sunny) for each of these places: ${cities.join(', ')}. Return only a JavaScript array of objects like: [{ city: '...', temperature: '...', Weather Condition: '...' }, ...]`;
+
+    // ✅ Ensure cities is always an array
+    if (!Array.isArray(cities)) {
+        cities = [cities];
+    }
+
+    const prompt = `Give the current temperature and weather condition (ex: cloudy, sunny) for each of these places: ${cities.join(', ')}. 
+Return ONLY valid JSON.
+Do not include explanations, text, or code fences.
+Return format:
+[
+  { "city": "...", "temperature": "...", "Weather Condition": "..." }
+]`;
 
     try {
         const response = await axios.post(GEMINI_API_URL, {
             contents: [{ parts: [{ text: prompt }] }],
         });
+
         const raw = response.data.candidates[0].content.parts[0].text;
-        const temperatureData = extractArray(raw);
+
+        // 🔎 Debug log
+        console.log("🌐 Gemini raw response (for /temp):\n", raw);
+
+        const temperatureData = extractJSON(raw);
         res.json({ results: temperatureData });
+
     } catch (err) {
+        console.error("❌ Backend /temp error:", err.message);
         res.status(500).json({ error: 'Error fetching temperature', details: err.message });
     }
 });
+
 
 // --------- `/transport` using stored data if not provided ---------
 app.post('/transport', async (req, res) => {
@@ -129,7 +188,7 @@ app.post('/transport', async (req, res) => {
             contents: [{ parts: [{ text: prompt }] }],
         });
         const raw = response.data.candidates[0].content.parts[0].text;
-        const transportInfo = extractArray(raw);
+        const transportInfo = extractJSON(raw);
         res.json({ transport: transportInfo });
     } catch (err) {
         res.status(500).json({ error: 'Error fetching transport info', details: err.message });
