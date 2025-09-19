@@ -1,104 +1,202 @@
-import React, { useState } from 'react';
-import axios from 'axios';
-import './App.css';
+import React, { useState } from "react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import axios from "axios";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import "./App.css";
 
-function App() {
-  const [selectedCity, setSelectedCity] = useState('Bangalore');
-  const [data, setData] = useState([]);
+export default function App() {
+  const [city, setCity] = useState("");
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+  const [tripData, setTripData] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
-  const handleExplore = async () => {
-    setLoading(true);
-    setError('');
-    setData([]);
-
-    try {
-      // 1. Get tourist places
-      const promptRes = await axios.post('http://localhost:5000/prompt', {
-        city: selectedCity
-      });
-      const places = promptRes.data.recommendations;
-
-      // 2. Get temperature and weather
-      const tempRes = await axios.post('http://localhost:5000/temp', {
-        cities: places
-      });
-      const weatherData = tempRes.data.results;
-
-      // 3. Get transport info
-      // const transportRes = await axios.post('http://localhost:5000/transport');
-      
-const transportRes = await axios.post('http://localhost:5000/transport', {
-  places
-});
-const transportData = transportRes.data.transport;
-      // 4. Merge data
-      const combinedData = places.map((placeName) => {
-        const weather = weatherData.find(w => w.city?.toLowerCase() === placeName.toLowerCase());
-        const transport = transportData.find(t => t.place?.toLowerCase() === placeName.toLowerCase());
-
-        return {
-          name: placeName,
-          temperature: weather?.temperature || 'N/A',
-          weatherCondition: weather?.['Weather Condition'] || 'N/A',
-          fromMajestic: transport?.fromMajestic || 'N/A',
-          fromAirport: transport?.fromAirport || 'N/A'
-        };
-      });
-
-      setData(combinedData);
-    } catch (err) {
-      console.error(err);
-      setError('Something went wrong while fetching city data.');
-    } finally {
-      setLoading(false);
-    }
+  // Convert to dd/mm/yy format
+  const formatDate = (date) => {
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = String(date.getFullYear()).slice(-2); // 2-digit year
+    return `${day}/${month}/${year}`;
   };
+
+
+ const fetchTripPlan = async () => {
+  if (!startDate || !endDate) {
+    alert("Please select both start and end dates");
+    return;
+  }
+
+  const totalDays =
+    Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+
+  const payload = {
+    city,
+    start_date: formatDate(startDate),
+    end_date: formatDate(endDate),
+    total_days: totalDays
+  };
+
+  console.log("📤 Sending to backend:", payload);
+
+  try {
+    setTripData(null);
+    setLoading(true);
+
+    // Step 1: Call /prompt
+    await axios.post("http://localhost:5000/prompt", {
+      city,
+      start_date: formatDate(startDate),
+      end_date: formatDate(endDate)
+    });
+
+    // Step 2: Call /temp with EMPTY body (backend will use stored recommendations)
+    const tempResponse = await axios.post("http://localhost:5000/temp", {});
+
+    // Step 3: Call /finalTrip with payload + temp_data
+    const finalPayload = {
+      ...payload,
+      temperatureData: tempResponse.data.results
+    };
+
+    const response = await axios.post(
+      "http://localhost:5000/finalTrip",
+      finalPayload
+    );
+
+    setTripData(response.data);
+  } catch (error) {
+    console.error("Backend error:", error.response?.data || error.message);
+    alert(
+      `Error: ${
+        error.response?.data?.error || "Failed to fetch trip plan"
+      }`
+    );
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+  // 📌 Download PDF function
+  const downloadPDF = () => {
+  const input = document.querySelector(".trip-output");
+
+  html2canvas(input, { scale: 2 }).then((canvas) => {
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF("p", "mm", "a4");
+
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+
+    const imgWidth = pdfWidth;
+    const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+
+    let heightLeft = imgHeight;
+    let position = 0;
+
+    // First page
+    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+    heightLeft -= pdfHeight;
+
+    // Extra pages if content is long
+    while (heightLeft > 0) {
+      position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pdfHeight;
+    }
+
+    pdf.save(`TripPlan_${tripData.city}.pdf`);
+  });
+};
 
   return (
     <div className="app-container">
-      <h1>City Explorer</h1>
-      <select value={selectedCity} onChange={(e) => setSelectedCity(e.target.value)}>
-        <option value="Bangalore">Bangalore</option>
-        {/* You can add more cities here */}
-      </select>
-      <button onClick={handleExplore} disabled={loading}>
-        {loading ? 'Loading...' : 'Enter'}
+      <h1>Trip Planner</h1>
+
+      <div className="form-group">
+        <label>City: </label>
+        <select value={city} onChange={(e) => setCity(e.target.value)}>
+          <option value="">Select a City</option>
+          <option value="Bangalore">Bangalore</option>
+        </select>
+      </div>
+
+      <div className="form-group">
+        <label>Start Date: </label>
+        <DatePicker
+          selected={startDate}
+          onChange={(date) => setStartDate(date)}
+          dateFormat="dd/MM/yyyy"
+          placeholderText="Select start date"
+        />
+      </div>
+
+      <div className="form-group">
+        <label>End Date: </label>
+        <DatePicker
+          selected={endDate}
+          onChange={(date) => setEndDate(date)}
+          dateFormat="dd/MM/yyyy"
+          placeholderText="Select end date"
+        />
+      </div>
+
+      <div className="get-trip-btn-container">
+        <button className="btn" onClick={fetchTripPlan}>
+          {loading ? "Loading..." : "Get Trip Plan"}
+        </button>
+      </div>
+
+
+      {tripData ? (
+  <div className="trip-output">
+    <h2>
+      Trip Plan for {tripData.city} ({tripData.start_date} → {tripData.end_date})
+    </h2>
+    <p>
+      <strong>Total Days:</strong> {tripData.total_days}
+    </p>
+
+    <div className="trip-plan-box">
+      {tripData.trip_plan
+        ? tripData.trip_plan.split("\n").map((line, idx) => {
+            const cleaned = line.replace(/\*/g, "").trim();
+
+            const headingMatch = cleaned.match(
+              /^(Day\s*\d+|Places|Transport|Weather|Tips|Activities|Costs)\s*[:\-]?/i
+            );
+
+            if (headingMatch) {
+              const heading = headingMatch[1];
+              const rest = cleaned.slice(headingMatch[0].length).trim();
+
+              return (
+                <p key={idx}>
+                  <strong style={{ color: "teal" }}>{heading}:</strong> {rest}
+                </p>
+              );
+            }
+
+            return <p key={idx}>{cleaned}</p>;
+          })
+        : <p>No trip plan available yet.</p>}
+    </div>
+
+    <div className="download-btn-container">
+      <button className="btn" onClick={downloadPDF}>
+        Download as PDF
       </button>
+    </div>
+  </div>
+) : (
+  <p>Please enter trip details to generate a plan.</p>
+)}
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-
-      {data.length > 0 && (
-        <div className="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>Tourist Place</th>
-              <th>Temperature & Weather</th>
-              <th>Transportation</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((place, index) => (
-              <tr key={index}>
-                <td>{place.name}</td>
-                <td>{place.temperature}, {place.weatherCondition}</td>
-                <td>
-                  <strong>From Majestic:</strong> {place.fromMajestic}<br />
-                  <strong>From Airport:</strong> {place.fromAirport}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        </div>
-      )}
     </div>
   );
-  
-
 }
 
-export default App;
 

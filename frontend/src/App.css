@@ -1,59 +1,133 @@
-
-.app-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 2rem;
-  background-color: #f5f5f5;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 2rem;
-  margin-bottom: 1rem;
-}
-
-select, button {
-  margin: 0.5rem;
-  padding: 0.5rem 1rem;
-  font-size: 1rem;
-}
-
-table {
-  margin-top: 2rem;
-  width: 100%;
-  max-width: 900px;
-  border-collapse: collapse;
-  background-color: #fff;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-}
-
-th, td {
-  padding: 1rem;
-  border: 1px solid #ddd;
-  text-align: left;
-}
-
-th {
-  background-color: #f0f0f0;
-}
-
-td strong {
-  color: #333;
-}
-.table-container {
+/* Base Styles */
+body {
   display: flex;
   justify-content: center;
-  width: 100%;
-  margin-top: 2rem;
+  align-items: center;
+  min-height: 100vh;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #f8f9fa;
+  margin: 0;
+  padding: 0;
+  color: #333;
 }
-table {
+
+.app-container {
+  max-width: 800px;
+  padding: 100px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+
+
+h1 {
+  text-align: center;
+  color: #2c3e50;
+  margin-bottom: 25px;
+}
+
+h2 {
+  color: #34495e;
+}
+
+/* Form Styles */
+.form-group {
+  margin-bottom: 20px;
+
+}
+
+label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+select,
+input {
   width: 100%;
-  max-width: 900px;
-  border-collapse: collapse;
-  background-color: #fff;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-} 
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 15px;
+  box-sizing: border-box; /* ensures padding is included in width */
+  display: block; /* avoids inline sizing issues */
+}
 
+/* Date Picker overrides */
+.react-datepicker-wrapper {
+  width: 100%;
+}
 
+/* Button Styles */
+.btn {
+  background-color: #3498db;
+  color: white;
+  padding: 12px 18px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 15px;
+  transition: background-color 0.2s ease;
+}
 
+.btn:hover {
+  background-color: #2980b9;
+}
+
+.btn:disabled {
+  background-color: #95a5a6;
+  cursor: not-allowed;
+}
+
+/* Trip Output Styles */
+.trip-output {
+  margin-top: 30px;
+}
+
+.trip-plan-box {
+  background-color: #f4f6f7;
+  padding: 15px;
+  border-radius: 8px;
+  line-height: 1.6;
+  white-space: pre-line;
+  border: 1px solid #e1e4e8;
+}
+
+.trip-plan-box p {
+  margin: 0 0 8px;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .app-container {
+    margin: 20px;
+    padding: 20px;
+  }
+}
+.get-trip-btn-container,
+.download-btn-container {
+  display: flex;
+  justify-content: center; /* centers horizontally */
+  margin-top: 20px;
+}
+
+.trip-heading {
+  color: red;
+  font-weight: bold;
+  font-size: 16px; /* optional: make it stand out */
+}
+select,
+input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 15px;
+  box-sizing: border-box;
+  display: block;
+
+  /* FIX for black background issue */
+  background-color: #fff; /* White background */
+  color: #000;           /* Black text */
+}
